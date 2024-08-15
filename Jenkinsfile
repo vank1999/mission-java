@@ -87,15 +87,29 @@ pipeline {
         }
       }
 
-      stage('Deploy to container') {
+      stage('Deploy To K8s') {
         steps {
-            script {
-                withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                sh "docker run -d -p 8083:8080 vank1999/mission:latest"
-            }
-          }
+            withKubeConfig(caCertificate: '', clusterName: 'my-ak-eks',
+            contextName: '', credentialsId: 'k8-token',
+            namespace: 'webapps', restrictKubeConfigAccess: false,
+            serverUrl: 'https://C5E2E20D71A8A5B3C146C1DAC3406AFF.gr7.us-east-1.eks.amazonaws.com') {
+            sh "kubectl apply -f ds.yml -n webapps"
+            sleep 60
         }
       }
+    }
+
+    stage('Verify Deployment') {
+        steps {
+            withKubeConfig(caCertificate: '', clusterName: 'my-ak-eks', 
+            contextName: '', credentialsId: 'k8-token',
+            namespace: 'webapps', restrictKubeConfigAccess: false,
+            serverUrl: 'https://C5E2E20D71A8A5B3C146C1DAC3406AFF.gr7.us-east-1.eks.amazonaws.com') {
+            sh "kubectl get pods -n webapps"
+            sh "kubectl get svc -n webapps"
+        }
+      }
+    }
 
     }
 
